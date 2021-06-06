@@ -35,8 +35,8 @@ def sms_reply():
                 conn = get_db()
                 cur = conn.cursor()
                 weight_in_lbs = command_body
-                weight_in_lbs = 100
-                phone_number = 200
+                weight_in_lbs = int(command_body)
+                phone_number = 3125090234
                 cur.execute('INSERT INTO weights (id, weight) VALUES(?,?)',(phone_number, weight_in_lbs))
                 conn.commit()
                 resp.message("Your weight has been recorded 🙌")
@@ -74,6 +74,16 @@ def get_weight():
         weights = weights + "Phone number = "+str(row[1])+" weight = "+str(row[2]) + "\n"
     print(weights)
     return weights
+
+@app.route("/get/notes", methods=['GET', 'POST'])
+def get_weight():
+    cur = get_db().cursor()
+    cur.execute('SELECT * from notes')
+    rows = cur.fetchall()
+    notes = ""
+    for row in rows:
+        notes = notes + "Phone number = "+str(row[1])+" note = "+str(row[2]) + "\n"
+    return notes
         
 
 
