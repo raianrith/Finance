@@ -72,11 +72,10 @@ def get_weight():
     weights = ""
     for row in rows:
         weights = weights + "Phone number = "+str(row[1])+" weight = "+str(row[2]) + "\n"
-    print(weights)
     return weights
 
 @app.route("/get/notes", methods=['GET', 'POST'])
-def get_weight():
+def get_notes():
     cur = get_db().cursor()
     cur.execute('SELECT * from notes')
     rows = cur.fetchall()
