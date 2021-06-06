@@ -18,6 +18,7 @@ DATABASE = './data.db'
 @app.route("/sms", methods=['GET', 'POST'])
 def sms_reply():
     body = request.values.get('Body', None)
+    # phone_number = request.values.get('from', None)
     resp = MessagingResponse()
     try:
         body_split = body.split(':')
@@ -31,12 +32,24 @@ def sms_reply():
             #save weight
             try:
                 resp.message("Your weight has been recorded 🙌")
+                cur = get_db().cursor()
+                weight_in_lbs = command_body
+                phone_number = 3125090234
+                cur.execute('INSERT INTO weights (id, weight) VALUES(?,?)',(phone_number, weight_in_lbs))
             except Exception as e:
                 print(e)
                 resp.message("Hmm, that was weird. Let me try to fix that. 🧰")
         elif command == "note" or command == "Note":
             #save note
-            resp.message("Your note has been saved 📝")
+            try:
+                cur = get_db().cursor()
+                note = command_body
+                phone_number = 3125090234
+                cur.execute('INSERT INTO notes (id, note) VALUES(?,?)',(phone_number, note))
+                resp.message("Your note has been saved 📝")
+            except Exception as e:
+                print(e)
+                resp.message("Hmm, that was weird. Let me try to fix that. 🧰")
         else:
             resp.message("Hmm, textie i don't understand 😕")
     except Exception as e:

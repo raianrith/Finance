@@ -11,7 +11,7 @@ drop table if exists weights;
 create table weights(
     weight_id integer primary key autoincrement,
     id integer not null,
-    weight integer,
+    weight integer not null,
     Timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
