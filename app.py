@@ -24,7 +24,7 @@ if ENV == 'dev':
     app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DEV_DATABASE_URL")
 else:
     app.debug=False
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("PROD_DATABASE_URL")
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://egvyaqyigaujuu:0f852e4602daf4f86ceb0919aa6510631585c97b4ecf2cf7ef9fae02516f6a38@ec2-54-158-232-223.compute-1.amazonaws.com:5432/d8k8274ljhv05'
 db = SQLAlchemy(app)
 class Texties(db.Model):
     __tablename__='texties_table'
