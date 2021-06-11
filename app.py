@@ -84,28 +84,54 @@ def sms_reply():
 
     return str(resp)
 
-if __name__ == "__main__":
-    app.run()
 
-# @app.route("/get/weight", methods=['GET', 'POST'])
-# def get_weight():
-#     cur = get_db().cursor()
-#     cur.execute('SELECT * from weights')
-#     rows = cur.fetchall()
-#     weights = ""
-#     for row in rows:
-#         weights = weights + "Phone number = "+str(row[1])+" weight = "+str(row[2]) + "\n"
-#     return weights
-
-# @app.route("/get/notes", methods=['GET', 'POST'])
-# def get_notes():
-#     cur = get_db().cursor()
-#     cur.execute('SELECT * from notes')
-#     rows = cur.fetchall()
-#     notes = ""
-#     for row in rows:
-#         notes = notes + "Phone number = "+str(row[1])+" note = "+str(row[2]) + "\n"
-#     return notes
+@app.route("/get/weight", methods=['GET', 'POST'])
+def get_weight():
+    return_string = " "
+    try:
+        all_texties = Texties.query.all()
+        results = [{
+            "type": textie.textie_type,
+            "from": textie.phone_number,
+            "textie": textie.textie,
+            "date": textie.created_date
+        } for textie in all_texties]
+        
+        for text in results:
+            text_type = str(text['type'])
+            phone = str(text['from'])
+            textie = str(text['textie'])
+            date = str(text['date'])
+            return_string = return_string + "<b>From:</b> " + phone + " <b>" + text_type + "</b>: " + textie + " <b>Date:</b> " + date + "<br> <br>"
+    except Exception as e:
+        print(e)
+        return e
+    
+    return return_string
+    
+@app.route("/get/notes", methods=['GET', 'POST'])
+def get_notes():
+    return_string = " "
+    try:
+        all_texties = Texties.query.all()
+        results = [{
+            "type": textie.textie_type,
+            "from": textie.phone_number,
+            "textie": textie.textie,
+            "date": textie.created_date
+        } for textie in all_texties]
+        
+        for text in results:
+            text_type = str(text['type'])
+            phone = str(text['from'])
+            textie = str(text['textie'])
+            date = str(text['date'])
+            return_string = return_string + "<b>From:</b> " + phone + " <b>" + text_type + "</b>: " + textie + " <b>Date:</b> " + date + "<br> <br>"
+    except Exception as e:
+        print(e)
+        return e
+    
+    return return_string
         
 
 
@@ -122,3 +148,6 @@ if __name__ == "__main__":
 #         db.close()
 
 
+
+if __name__ == "__main__":
+    app.run()
