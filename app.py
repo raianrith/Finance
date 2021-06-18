@@ -139,7 +139,7 @@ def auth():
         phone_number = "+1"+phone_number
     auth_code = str(1234)
     try:
-        data = AuthenticationTable(phone_number, auth_code)
+        data = AuthenticationTable(auth_code,phone_number)
         db.session.add(data)
         db.session.commit()
         try:
@@ -151,6 +151,7 @@ def auth():
         except Exception as e:
             print("Error in sending auth code to client")
     except Exception as e:
+        print(e)
         print("Error in creating auth code in Database")
     return render_template("auth.html")
 
