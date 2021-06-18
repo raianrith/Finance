@@ -18,6 +18,7 @@ import random
 
 
 app = Flask(__name__)
+app.secret_key = "supersecretkey"
 #If sms is received twilio will hit this function with the message
 dotenv_path = join(dirname(__file__), '.env')
 load_dotenv(dotenv_path)
@@ -129,6 +130,7 @@ def sms_reply():
 @app.route("/auth", methods=['GET', 'POST'])
 def auth():
     type=request.args.get('type')
+    session["type"] = str(type)
     phone_number=str(request.args.get('phone_number'))
     phone_number = phone_number.strip()
     if(phone_number==None or len(phone_number)==4):
@@ -163,26 +165,37 @@ def auth():
 def auth_check():
     auth_code= str(request.args.get('auth_code'))
     auth_code = auth_code.strip()
-    phone_number=str(request.args.get('phone_number'))
-    phone_number = phone_number.strip()
-    if(phone_number==None or len(phone_number)==4):
+    auth_phone_number=str(request.args.get('phone_number'))
+    auth_phone_number = auth_phone_number.strip()
+    if(auth_phone_number==None or len(auth_phone_number)==4):
         return("<h3>PLEASE ENTER A PHONE NUMBER")
-    elif(phone_number[0]=='1'):
-        phone_number = "+"+phone_number
-    elif(phone_number[0]!='1' and phone_number[0]!='+' and len(phone_number)!=4):
-        phone_number = "+1"+phone_number
+    elif(auth_phone_number[0]=='1'):
+        auth_phone_number = "+"+auth_phone_number
+    elif(auth_phone_number[0]!='1' and auth_phone_number[0]!='+' and len(auth_phone_number)!=4):
+        auth_phone_number = "+1"+auth_phone_number
     try:
-        response = AuthenticationTable.query.filter_by(id=1).first()
-        print("I just fetched this", response)
-        print("here is something", response.auth_code)
-        if(response.auth_code ==  auth_code):
+        # print('phone number',auth_phone_number)
+        # print('auth_code',auth_code)
+        response = AuthenticationTable.query.filter_by(phone_number=auth_phone_number).order_by(AuthenticationTable.id.desc()).all()
+        # print('database auth_code',response[len(response)])
+        # print("I just fetched this", response)
+        # print(response)
+        print(response[0].auth_code)
+        print(auth_code)
+        if(str(response[0].auth_code) ==  auth_code):
             print("Passed auth check")
+            phone_number = auth_phone_number
             session['phone_number'] = phone_number
-            return render_template("https://texties.herokuapp.com/get/texties?phone_number="+phone_number)
+            if "type" in session:
+                pass
+            else:
+                session["type"] = "note"
+            return redirect(url_for("get_texties"))
         else:
             print("failed Auth check")
             return render_template("fail.html")
     except Exception as e:
+        print(e)
         print("error in fetching auth code from database")
     print("why am i here?")
     return "I got this far but why?"
@@ -190,15 +203,20 @@ def auth_check():
 @app.route("/get/texties", methods=['GET', 'POST'])
 def get_texties():
     try:
-        type=request.args.get('type')
-        phone_number=str(request.args.get('phone_number'))
-        phone_number = phone_number.strip()
-        if(phone_number==None or len(phone_number)==4):
-            phone_number = '+19206369355'
-        elif(phone_number[0]=='1'):
-            phone_number = "+"+phone_number
-        elif(phone_number[0]!='1' and phone_number[0]!='+' and len(phone_number)!=4):
-            phone_number = "+1"+phone_number
+        
+        if "phone_number" in session:
+            phone_number = session["phone_number"]
+            type = session["type"]
+        else:
+            type=request.args.get('type')
+            phone_number=str(request.args.get('phone_number'))
+            phone_number = phone_number.strip()
+            if(phone_number==None or len(phone_number)==4):
+                phone_number = '+19206369355'
+            elif(phone_number[0]=='1'):
+                phone_number = "+"+phone_number
+            elif(phone_number[0]!='1' and phone_number[0]!='+' and len(phone_number)!=4):
+                phone_number = "+1"+phone_number
         all_texties = Texties.query.filter_by(textie_type=type,phone_number=phone_number).all()
         result = texties_schema.dump(all_texties)
         return jsonify(result)
