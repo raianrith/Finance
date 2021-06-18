@@ -11,11 +11,21 @@ from dotenv import load_dotenv
 import os
 from os.path import join, dirname
 from flask_marshmallow import Marshmallow
+from twilio.rest import Client
+
+
+
+
 
 app = Flask(__name__)
 #If sms is received twilio will hit this function with the message
 dotenv_path = join(dirname(__file__), '.env')
 load_dotenv(dotenv_path)
+
+account_sid = 'ACa8d0cb233f2f43304aab97b8f4e52f8e'
+auth_token = '44cfcd02cd6a78664cdc215f079bc65a'
+client = Client(account_sid, auth_token)
+
 
 ENV = 'prod'
 if ENV == 'dev':
@@ -40,6 +50,25 @@ class Texties(db.Model):
         self.textie_type = textie_type
         self.phone_number = phone_number
 
+class AuthenticationTable(db.Model):
+    __tablename__='auth_table'
+    id = db.Column(db.Integer, primary_key=True)
+    phone_number = db.Column(db.String(50))
+    auth_code = db.Column(db.String(600))
+    created_date = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+
+
+    def __init__(self, auth_code, phone_number):
+        self.auth_code = auth_code
+        self.phone_number = phone_number
+
+class AuthenticationTableSchema(marsh.Schema):
+
+    class Meta:
+        fields = ('id','phone_number','auth_code','created_date')
+
+authentications_schema =  AuthenticationTableSchema( many = True)
+authentication_schema = AuthenticationTableSchema()
 class TextiesSchema(marsh.Schema):
     class Meta:
         fields = ('id','textie_type','textie','phone_number','created_date')
@@ -51,6 +80,10 @@ textie_schema = TextiesSchema()
 def index():
     return render_template("index.html")
 
+@app.route('/authenticate')
+def authenticate():
+    return render_template("auth.html")
+
 
 commands_list = ['weight','note','idea','reminder']
 positive_emojis=['🙌','📝','🎉','🥳','👯','🎊','🤪','👌']
@@ -59,7 +92,6 @@ random_positive_emoji= random.randint(0,len(positive_emojis)-1)
 
 @app.route("/sms", methods=['GET', 'POST'])
 def sms_reply():
-    print(random_positive_emoji)
     body = request.values.get('Body', None)
     phone_number = request.values.get('From', None)
     resp = MessagingResponse()
@@ -90,7 +122,58 @@ def sms_reply():
         resp.message("Looks like I am having some issues textie. Let's try later 🥺")
 
     return str(resp)
+## Finish this auth function
+# Person fills index.html form
+# Redirect to auth page and send sms with code to their phone
+# Collect sms code and if code matches the latest one sent to the number in database return the textie_type associated with phone number
+@app.route("/auth", methods=['GET', 'POST'])
+def auth():
+    type=request.args.get('type')
+    phone_number=str(request.args.get('phone_number'))
+    phone_number = phone_number.strip()
+    if(phone_number==None or len(phone_number)==4):
+        phone_number = '+19206369355'
+    elif(phone_number[0]=='1'):
+        phone_number = "+"+phone_number
+    elif(phone_number[0]!='1' and phone_number[0]!='+' and len(phone_number)!=4):
+        phone_number = "+1"+phone_number
+    auth_code = str(1234)
+    try:
+        data = AuthenticationTable(phone_number, auth_code)
+        db.session.add(data)
+        db.session.commit()
+        try:
+            message = client.messages.create(
+                              body=auth_code,
+                              from_='+15126050927',
+                              to=phone_number
+                          )
+        except Exception as e:
+            print("Error in sending auth code to client")
+    except Exception as e:
+        print("Error in creating auth code in Database")
+    return render_template("auth.html")
 
+@app.route("/auth_check", methods=['GET','POST'])
+def auth_check():
+    auth_code= str(request.args.get('auth_code'))
+    auth_code = auth_code.strip()
+    phone_number=str(request.args.get('phone_number'))
+    phone_number = phone_number.strip()
+    if(phone_number==None or len(phone_number)==4):
+        phone_number = '+19206369355'
+    elif(phone_number[0]=='1'):
+        phone_number = "+"+phone_number
+    elif(phone_number[0]!='1' and phone_number[0]!='+' and len(phone_number)!=4):
+        phone_number = "+1"+phone_number
+    try:
+        response = AuthenticationTable.query.filter_by(phone_number=phone_number).first()
+        if(response.auth_code ==  auth_code):
+            return render_template("success.html")
+        else:
+            return render_template("fail.html")
+    except Exception as e:
+        print("error in fetching auth code from database")
 
 @app.route("/get/texties", methods=['GET', 'POST'])
 def get_texties():
@@ -104,7 +187,6 @@ def get_texties():
             phone_number = "+"+phone_number
         elif(phone_number[0]!='1' and phone_number[0]!='+' and len(phone_number)!=4):
             phone_number = "+1"+phone_number
-        print('phone number =',phone_number)
         all_texties = Texties.query.filter_by(textie_type=type,phone_number=phone_number).all()
         result = texties_schema.dump(all_texties)
         return jsonify(result)
