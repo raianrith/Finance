@@ -12,7 +12,7 @@ import os
 from os.path import join, dirname
 from flask_marshmallow import Marshmallow
 from twilio.rest import Client
-
+import random
 
 
 
@@ -137,7 +137,7 @@ def auth():
         phone_number = "+"+phone_number
     elif(phone_number[0]!='1' and phone_number[0]!='+' and len(phone_number)!=4):
         phone_number = "+1"+phone_number
-    auth_code = str(1234)
+    auth_code = str(random.randint(1111,9999))
     try:
         data = AuthenticationTable(auth_code,phone_number)
         db.session.add(data)
@@ -155,6 +155,10 @@ def auth():
         print("Error in creating auth code in Database")
     return render_template("auth.html")
 
+
+##Works with data query on id but not phone number try using as an int maybe,
+# once it works with phone number just route to the link unsafely
+# Next step is to create a session or another secure way of loggin people in
 @app.route("/auth_check", methods=['GET','POST'])
 def auth_check():
     auth_code= str(request.args.get('auth_code'))
@@ -162,19 +166,26 @@ def auth_check():
     phone_number=str(request.args.get('phone_number'))
     phone_number = phone_number.strip()
     if(phone_number==None or len(phone_number)==4):
-        phone_number = '+19206369355'
+        return("<h3>PLEASE ENTER A PHONE NUMBER")
     elif(phone_number[0]=='1'):
         phone_number = "+"+phone_number
     elif(phone_number[0]!='1' and phone_number[0]!='+' and len(phone_number)!=4):
         phone_number = "+1"+phone_number
     try:
-        response = AuthenticationTable.query.filter_by(phone_number=phone_number).first()
+        response = AuthenticationTable.query.filter_by(id=1).first()
+        print("I just fetched this", response)
+        print("here is something", response.auth_code)
         if(response.auth_code ==  auth_code):
-            return render_template("success.html")
+            print("Passed auth check")
+            session['phone_number'] = phone_number
+            return render_template("https://texties.herokuapp.com/get/texties?phone_number="+phone_number)
         else:
+            print("failed Auth check")
             return render_template("fail.html")
     except Exception as e:
         print("error in fetching auth code from database")
+    print("why am i here?")
+    return "I got this far but why?"
 
 @app.route("/get/texties", methods=['GET', 'POST'])
 def get_texties():
