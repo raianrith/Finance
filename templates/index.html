@@ -13,9 +13,22 @@
     <link rel="stylesheet" href="" />
   </head>
   <body>
-    <a href="https://texties.herokuapp.com/get/notes">Notes</a><br />
-    <a href="https://texties.herokuapp.com/get/weight">Weight Logs</a>
-
+    <form action="https://texties.herokuapp.com/get/texties">
+      <label for="type">Textie Type:</label><br />
+      <select name="type" id="type">
+        <option value="note">Notes</option>
+        <option value="weight">Weight</option>
+        <option value="idea">Ideas</option></select
+      ><br />
+      <label for="phone_number">Phone Number:</label><br />
+      <input
+        type="text"
+        id="phone_number"
+        name="phone_number"
+        value="9206369355"
+      /><br /><br />
+      <input type="submit" value="Submit" />
+    </form>
     <script src="" async defer></script>
   </body>
 </html>

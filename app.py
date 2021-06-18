@@ -12,7 +12,6 @@ import os
 from os.path import join, dirname
 from flask_marshmallow import Marshmallow
 
-
 app = Flask(__name__)
 #If sms is received twilio will hit this function with the message
 dotenv_path = join(dirname(__file__), '.env')
@@ -93,11 +92,30 @@ def sms_reply():
     return str(resp)
 
 
+@app.route("/get/texties", methods=['GET', 'POST'])
+def get_texties():
+    try:
+        type=request.args.get('type')
+        phone_number=str(request.args.get('phone_number'))
+        phone_number = phone_number.strip()
+        if(phone_number==None or len(phone_number)==4):
+            phone_number = '+19206369355'
+        elif(phone_number[0]=='1'):
+            phone_number = "+"+phone_number
+        elif(phone_number[0]!='1' and phone_number[0]!='+' and len(phone_number)!=4):
+            phone_number = "+1"+phone_number
+        print('phone number =',phone_number)
+        all_texties = Texties.query.filter_by(textie_type=type,phone_number=phone_number).all()
+        result = texties_schema.dump(all_texties)
+        return jsonify(result)
+    except Exception as e:
+        print(e)
+        return ("error fetching",type)
+
 @app.route("/get/weight", methods=['GET', 'POST'])
 def get_weight():
-    return_string = " "
     try:
-        all_texties = Texties.query.all()
+        all_texties = Texties.query.filter_by(textie_type='weight').all()
         result = texties_schema.dump(all_texties)
         return jsonify(result)
     except Exception as e:
@@ -106,14 +124,23 @@ def get_weight():
     
 @app.route("/get/notes", methods=['GET', 'POST'])
 def get_notes():
-    return_string = " "
     try:
-        all_texties = Texties.query.all()
+        all_texties = Texties.query.filter_by(textie_type='note').all()
         result = texties_schema.dump(all_texties)
         return jsonify(result)
     except Exception as e:
         print(e)
         return "error fetching notes"
+
+@app.route("/get/ideas", methods=['GET', 'POST'])
+def get_ideas():
+    try:
+        all_texties = Texties.query.filter_by(textie_type='idea').all()
+        result = texties_schema.dump(all_texties)
+        return jsonify(result)
+    except Exception as e:
+        print(e)
+        return "error fetching ideas"
         
 
 if __name__ == "__main__":
