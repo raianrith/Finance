@@ -134,7 +134,7 @@ def auth():
     phone_number=str(request.args.get('phone_number'))
     phone_number = phone_number.strip()
     if(phone_number==None or len(phone_number)==4):
-        phone_number = '+19206369355'
+       redirect(url_for('index'))
     elif(phone_number[0]=='1'):
         phone_number = "+"+phone_number
     elif(phone_number[0]!='1' and phone_number[0]!='+' and len(phone_number)!=4):
@@ -212,7 +212,7 @@ def get_texties():
             phone_number=str(request.args.get('phone_number'))
             phone_number = phone_number.strip()
             if(phone_number==None or len(phone_number)==4):
-                phone_number = '+19206369355'
+                redirect(url_for('index'))
             elif(phone_number[0]=='1'):
                 phone_number = "+"+phone_number
             elif(phone_number[0]!='1' and phone_number[0]!='+' and len(phone_number)!=4):
