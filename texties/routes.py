@@ -1,81 +1,11 @@
-# -*- coding: utf-8 -*-
-from typing import Text
-from twilio.rest import Client
-from flask import Flask, Flask, request, session, g, redirect, url_for, abort, \
+from texties.models import Texties, AuthenticationTable
+from flask import request, session, g, redirect, url_for, abort, \
      render_template, flash, jsonify
 from twilio.twiml.messaging_response import MessagingResponse
-from flask_sqlalchemy import SQLAlchemy
-import datetime
 import random
-from dotenv import load_dotenv
-import os
-from os.path import join, dirname
-from flask_marshmallow import Marshmallow
-from twilio.rest import Client
-import random
-
-
-
-
-app = Flask(__name__)
-app.secret_key = "supersecretkey"
-#If sms is received twilio will hit this function with the message
-dotenv_path = join(dirname(__file__), '.env')
-load_dotenv(dotenv_path)
-
-account_sid = 'ACa8d0cb233f2f43304aab97b8f4e52f8e'
-auth_token = '44cfcd02cd6a78664cdc215f079bc65a'
-client = Client(account_sid, auth_token)
-
-
-ENV = 'prod'
-if ENV == 'dev':
-    app.debug = True
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DEV_DATABASE_URL")
-else:
-    app.debug=False
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://egvyaqyigaujuu:0f852e4602daf4f86ceb0919aa6510631585c97b4ecf2cf7ef9fae02516f6a38@ec2-54-158-232-223.compute-1.amazonaws.com:5432/d8k8274ljhv05'
-db = SQLAlchemy(app)
-marsh = Marshmallow(app)
-class Texties(db.Model):
-    __tablename__='texties_table'
-    id = db.Column(db.Integer, primary_key=True)
-    textie_type = db.Column(db.String(50))
-    textie = db.Column(db.String(600))
-    phone_number = db.Column(db.String(15))
-    created_date = db.Column(db.DateTime, default=datetime.datetime.utcnow)
-
-
-    def __init__(self, textie, textie_type, phone_number):
-        self.textie = textie
-        self.textie_type = textie_type
-        self.phone_number = phone_number
-
-class AuthenticationTable(db.Model):
-    __tablename__='auth_table'
-    id = db.Column(db.Integer, primary_key=True)
-    phone_number = db.Column(db.String(50))
-    auth_code = db.Column(db.String(600))
-    created_date = db.Column(db.DateTime, default=datetime.datetime.utcnow)
-
-
-    def __init__(self, auth_code, phone_number):
-        self.auth_code = auth_code
-        self.phone_number = phone_number
-
-class AuthenticationTableSchema(marsh.Schema):
-
-    class Meta:
-        fields = ('id','phone_number','auth_code','created_date')
-
-authentications_schema =  AuthenticationTableSchema( many = True)
-authentication_schema = AuthenticationTableSchema()
-class TextiesSchema(marsh.Schema):
-    class Meta:
-        fields = ('id','textie_type','textie','phone_number','created_date')
-
-texties_schema =  TextiesSchema( many = True)
-textie_schema = TextiesSchema()
+from texties import app
+from texties import db, client
+from texties.models import texties_schema, authentications_schema
 
 @app.route('/')
 def index():
@@ -254,6 +184,3 @@ def get_ideas():
         print(e)
         return "error fetching ideas"
         
-
-if __name__ == "__main__":
-    app.run()
