@@ -53,10 +53,8 @@ def sms_reply():
         resp.message("Looks like I am having some issues textie. Let's try later 🥺")
 
     return str(resp)
-## Finish this auth function
-# Person fills index.html form
-# Redirect to auth page and send sms with code to their phone
-# Collect sms code and if code matches the latest one sent to the number in database return the textie_type associated with phone number
+
+
 @app.route("/auth", methods=['GET', 'POST'])
 def auth():
     type=request.args.get('type')
@@ -90,30 +88,16 @@ def auth():
     return render_template("auth.html")
 
 
-##Works with data query on id but not phone number try using as an int maybe,
-# once it works with phone number just route to the link unsafely
-# Next step is to create a session or another secure way of loggin people in
+
 @app.route("/auth_check", methods=['GET','POST'])
 def auth_check():
     auth_code= str(request.args.get('auth_code'))
     auth_code = auth_code.strip()
     if 'phone_number' in session:
         auth_phone_number = session['phone_number']
-    auth_phone_number=str(request.args.get('phone_number'))
-    auth_phone_number = auth_phone_number.strip()
-    if(auth_phone_number==None or len(auth_phone_number)==4):
-        return("<h3>PLEASE ENTER A PHONE NUMBER")
-    elif(auth_phone_number[0]=='1'):
-        auth_phone_number = "+"+auth_phone_number
-    elif(auth_phone_number[0]!='1' and auth_phone_number[0]!='+' and len(auth_phone_number)!=4):
-        auth_phone_number = "+1"+auth_phone_number
+        print("Found phone number in sessions")
     try:
-        # print('phone number',auth_phone_number)
-        # print('auth_code',auth_code)
         response = AuthenticationTable.query.filter_by(phone_number=auth_phone_number).order_by(AuthenticationTable.id.desc()).all()
-        # print('database auth_code',response[len(response)])
-        # print("I just fetched this", response)
-        # print(response)
         print(response[0].auth_code)
         print(auth_code)
         if(str(response[0].auth_code) ==  auth_code):
@@ -137,7 +121,6 @@ def auth_check():
 @app.route("/get/texties", methods=['GET', 'POST'])
 def get_texties():
     try:
-        
         if "phone_number" in session:
             phone_number = session["phone_number"]
             type = session["type"]
