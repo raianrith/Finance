@@ -69,6 +69,7 @@ def auth():
         phone_number = "+"+phone_number
     elif(phone_number[0]!='1' and phone_number[0]!='+' and len(phone_number)!=4):
         phone_number = "+1"+phone_number
+    session['phone_number'] = phone_number
     auth_code = str(random.randint(1111,9999))
     try:
         data = AuthenticationTable(auth_code,phone_number)
@@ -96,6 +97,8 @@ def auth():
 def auth_check():
     auth_code= str(request.args.get('auth_code'))
     auth_code = auth_code.strip()
+    if 'phone_number' in session:
+        auth_phone_number = session['phone_number']
     auth_phone_number=str(request.args.get('phone_number'))
     auth_phone_number = auth_phone_number.strip()
     if(auth_phone_number==None or len(auth_phone_number)==4):
