@@ -75,6 +75,7 @@ def auth():
         db.session.add(data)
         db.session.commit()
         try:
+            auth_code = "Here is your Authorization Code: "+auth_code
             message = client.messages.create(
                               body=auth_code,
                               from_='+15126050927',
