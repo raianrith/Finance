@@ -7,12 +7,14 @@ import os
 from os.path import join, dirname
 from flask_marshmallow import Marshmallow
 from twilio.rest import Client
+from flask_cors import CORS
 
 
 
 
 app = Flask(__name__)
-app.secret_key = "supersecretkey"
+CORS(app)
+app.secret_key = "supersecshrlweifjhgaslihgfsghas35465454654sd6gf54s6f5g4s6f5gretkey"
 #If sms is received twilio will hit this function with the message
 dotenv_path = join(dirname(__file__), '.env')
 load_dotenv(dotenv_path)
