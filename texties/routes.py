@@ -84,9 +84,9 @@ def auth():
                               to=phone_number
                           )
         except Exception as e:
-            return json.dumps({'success':False, 'Error': e}), 500, {'ContentType':'application/json'}
+            return json.dumps({'success':False, 'Error': e+" Error in sending message", }), 500, {'ContentType':'application/json'}
     except Exception as e:
-        return json.dumps({'success':False, 'Error': e}), 500, {'ContentType':'application/json'}
+        return json.dumps({'success':False, 'Error': e+" Error in adding auth code to database"}), 500, {'ContentType':'application/json'}
     return json.dumps({'success':True}), 200, {'ContentType':'application/json'}
 
 
