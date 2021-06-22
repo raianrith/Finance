@@ -6,6 +6,7 @@ import random
 from texties import app
 from texties import db, client
 from texties.models import texties_schema, authentications_schema
+import json 
 
 @app.route('/')
 def index():
@@ -55,68 +56,73 @@ def sms_reply():
     return str(resp)
 
 
+
+
 @app.route("/auth", methods=['GET', 'POST'])
 def auth():
-    type=request.args.get('type')
-    session["type"] = str(type)
-    phone_number=str(request.args.get('phone_number'))
-    phone_number = phone_number.strip()
-    if(phone_number==None or len(phone_number)==4):
-       redirect(url_for('index'))
-    elif(phone_number[0]=='1'):
-        phone_number = "+"+phone_number
-    elif(phone_number[0]!='1' and phone_number[0]!='+' and len(phone_number)!=4):
-        phone_number = "+1"+phone_number
-    session['phone_number'] = phone_number
-    auth_code = str(random.randint(1111,9999))
+    try:
+        phone_number=str(request.args.get('phone_number'))
+        phone_number = phone_number.strip()
+        if(phone_number==None or len(phone_number)==4):
+            redirect(url_for('index'))
+        elif(phone_number[0]=='1'):
+            phone_number = "+"+phone_number
+        elif(phone_number[0]!='1' and phone_number[0]!='+' and len(phone_number)!=4):
+            phone_number = "+1"+phone_number
+        auth_code = str(random.randint(1111,9999))
+    except Exception as e:
+        return json.dumps({'success':False, 'Error': e}), 400, {'ContentType':'application/json'}
     try:
         data = AuthenticationTable(auth_code,phone_number)
         db.session.add(data)
         db.session.commit()
         try:
-            auth_code = "Here is your Authorization Code: "+auth_code
+            auth_code = "Here is your Authentication Code: "+auth_code
             message = client.messages.create(
                               body=auth_code,
                               from_='+15126050927',
                               to=phone_number
                           )
         except Exception as e:
-            print("Error in sending auth code to client")
+            return json.dumps({'success':False, 'Error': e}), 500, {'ContentType':'application/json'}
     except Exception as e:
-        print(e)
-        print("Error in creating auth code in Database")
-    return render_template("auth.html")
+        return json.dumps({'success':False, 'Error': e}), 500, {'ContentType':'application/json'}
+    return json.dumps({'success':True}), 200, {'ContentType':'application/json'}
 
 
-
+##Works with data query on id but not phone number try using as an int maybe,
+# once it works with phone number just route to the link unsafely
+# Next step is to create a session or another secure way of login people in
 @app.route("/auth_check", methods=['GET','POST'])
 def auth_check():
-    auth_code= str(request.args.get('auth_code'))
-    auth_code = auth_code.strip()
-    if 'phone_number' in session:
-        auth_phone_number = session['phone_number']
-        print("Found phone number in sessions")
+    try:
+        auth_code= str(request.args.get('auth_code'))
+        auth_code = auth_code.strip()
+        auth_phone_number=str(request.args.get('phone_number'))
+        auth_phone_number = auth_phone_number.strip()
+        if(auth_phone_number==None or len(auth_phone_number)==4):
+            return("<h3>PLEASE ENTER A PHONE NUMBER")
+        elif(auth_phone_number[0]=='1'):
+            auth_phone_number = "+"+auth_phone_number
+        elif(auth_phone_number[0]!='1' and auth_phone_number[0]!='+' and len(auth_phone_number)!=4):
+            auth_phone_number = "+1"+auth_phone_number
+    except Exception as e:
+        return json.dumps({'success':False, 'Error': e}), 400, {'ContentType':'application/json'}
     try:
         response = AuthenticationTable.query.filter_by(phone_number=auth_phone_number).order_by(AuthenticationTable.id.desc()).all()
-        print(response[0].auth_code)
-        print(auth_code)
         if(str(response[0].auth_code) ==  auth_code):
-            print("Passed auth check")
             phone_number = auth_phone_number
             session['phone_number'] = phone_number
             if "type" in session:
                 pass
             else:
                 session["type"] = "note"
-            return redirect(url_for("get_texties"))
+            return json.dumps({'success':True}), 200, {'ContentType':'application/json'}
         else:
-            print("failed Auth check")
-            return render_template("fail.html")
+            return json.dumps({'success':False, 'Error': 'Auth Code Incorrect'}), 403, {'ContentType':'application/json'}
     except Exception as e:
-        print(e)
-        print("error in fetching auth code from database")
-    print("why am i here?")
-    return "I got this far but why?"
+        return json.dumps({'success':False, 'Error': e}), 500, {'ContentType':'application/json'}
+
 
 @app.route("/get/texties", methods=['GET', 'POST'])
 def get_texties():
