@@ -8,11 +8,17 @@ from os.path import join, dirname
 from flask_marshmallow import Marshmallow
 from twilio.rest import Client
 from flask_cors import CORS
+from flask_jwt_extended import JWTManager
 
 
 
 
 app = Flask(__name__)
+
+# Setup the Flask-JWT-Extended extension
+app.config["JWT_SECRET_KEY"] = "djsbglwiuhp08yr4r984gh94u8gw98rhg4u5th9e8rgh58ghergh8euh098"  # Change this!
+jwt = JWTManager(app)
+
 CORS(app)
 app.secret_key = "supersecshrlweifjhgaslihgfsghas35465454654sd6gf54s6f5g4s6f5gretkey"
 #If sms is received twilio will hit this function with the message

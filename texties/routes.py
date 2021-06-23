@@ -3,23 +3,32 @@ from flask import request, session, g, redirect, url_for, abort, \
      render_template, flash, jsonify
 from twilio.twiml.messaging_response import MessagingResponse
 import random
-from texties import app
+from texties import app, jwt
 from texties import db, client
 from texties.models import texties_schema, authentications_schema
 import json 
+from flask_jwt_extended import create_access_token
+from flask_jwt_extended import get_jwt_identity
+from flask_jwt_extended import jwt_required
+
 
 @app.route('/')
 def index():
-    return render_template("index.html")
+    return json.dumps({'Error':'Nothing to look here. Move on chump!'})
 
-@app.route('/authenticate')
-def authenticate():
-    return render_template("auth.html")
+@app.route('/token')
+def token():
+    access_token = create_access_token(identity="test")
+    response = json.dumps({'success':True, 'access_token':access_token}), 200, {'ContentType':'application/json'}
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    return response
+
 
 
 commands_list = ['weight','note','idea','reminder']
 positive_emojis=['🙌','📝','🎉','🥳','👯','🎊','🤪','👌']
 random_positive_emoji= random.randint(0,len(positive_emojis)-1)
+
 
 
 @app.route("/sms", methods=['GET', 'POST'])
@@ -90,9 +99,6 @@ def auth():
     return json.dumps({'success':True}), 200, {'ContentType':'application/json'}
 
 
-##Works with data query on id but not phone number try using as an int maybe,
-# once it works with phone number just route to the link unsafely
-# Next step is to create a session or another secure way of login people in
 @app.route("/auth_check", methods=['GET','POST'])
 def auth_check():
     try:
@@ -101,7 +107,7 @@ def auth_check():
         auth_phone_number=str(request.args.get('phone_number'))
         auth_phone_number = auth_phone_number.strip()
         if(auth_phone_number==None or len(auth_phone_number)==4):
-            return("<h3>PLEASE ENTER A PHONE NUMBER")
+            return json.dumps({'success':False, 'Error': "Phone number not entered"}), 400, {'ContentType':'application/json'}
         elif(auth_phone_number[0]=='1'):
             auth_phone_number = "+"+auth_phone_number
         elif(auth_phone_number[0]!='1' and auth_phone_number[0]!='+' and len(auth_phone_number)!=4):
@@ -111,13 +117,8 @@ def auth_check():
     try:
         response = AuthenticationTable.query.filter_by(phone_number=auth_phone_number).order_by(AuthenticationTable.id.desc()).all()
         if(str(response[0].auth_code) ==  auth_code):
-            phone_number = auth_phone_number
-            session['phone_number'] = phone_number
-            if "type" in session:
-                pass
-            else:
-                session["type"] = "note"
-            return json.dumps({'success':True}), 200, {'ContentType':'application/json'}
+            access_token = create_access_token(identity="test")
+            return json.dumps({'success':True, 'access_token':access_token}), 200, {'ContentType':'application/json'}
         else:
             return json.dumps({'success':False, 'Error': 'Auth Code Incorrect'}), 403, {'ContentType':'application/json'}
     except Exception as e:
@@ -129,7 +130,6 @@ def get_texties():
     try:
         if "phone_number" in session:
             phone_number = session["phone_number"]
-            type = session["type"]
         else:
             type=request.args.get('type')
             phone_number=str(request.args.get('phone_number'))
@@ -145,35 +145,47 @@ def get_texties():
         return jsonify(result)
     except Exception as e:
         print(e)
-        return ("error fetching",type)
+        return json.dumps({'success':False, 'Error': e}), 500, {'ContentType':'application/json'}
 
-@app.route("/get/weight", methods=['GET', 'POST'])
+@app.route("/get", methods=['GET', 'POST'])
 def get_weight():
     try:
-        all_texties = Texties.query.filter_by(textie_type='weight').all()
+        type=request.args.get('type')
+        phone_number=str(request.args.get('phone_number'))
+        phone_number = phone_number.strip()
+        if(phone_number==None or len(phone_number)==4):
+            redirect(url_for('index'))
+        elif(phone_number[0]=='1'):
+            phone_number = "+"+phone_number
+        elif(phone_number[0]!='1' and phone_number[0]!='+' and len(phone_number)!=4):
+            phone_number = "+1"+phone_number
+        print("phone_number=", phone_number)
+        print("type=",type)
+        all_texties = Texties.query.filter_by(textie_type=type, phone_number=phone_number).all()
         result = texties_schema.dump(all_texties)
         return jsonify(result)
     except Exception as e:
-        print(e)
-        return "error fetching weights"
+        # print(e)
+        return json.dumps({'success':False, 'Error': e}), 500, {'ContentType':'application/json'}
     
-@app.route("/get/notes", methods=['GET', 'POST'])
-def get_notes():
-    try:
-        all_texties = Texties.query.filter_by(textie_type='note').all()
-        result = texties_schema.dump(all_texties)
-        return jsonify(result)
-    except Exception as e:
-        print(e)
-        return "error fetching notes"
+# @app.route("/get/notes", methods=['GET', 'POST'])
+# def get_notes():
+#     try:
+#         phone_number = session["phone_number"]
+#         all_texties = Texties.query.filter_by(textie_type='note', phone_number=phone_number).all()
+#         result = texties_schema.dump(all_texties)
+#         return jsonify(result)
+#     except Exception as e:
+#         print(e)
+#         return "error fetching notes"
 
-@app.route("/get/ideas", methods=['GET', 'POST'])
-def get_ideas():
-    try:
-        all_texties = Texties.query.filter_by(textie_type='idea').all()
-        result = texties_schema.dump(all_texties)
-        return jsonify(result)
-    except Exception as e:
-        print(e)
-        return "error fetching ideas"
+# @app.route("/get/ideas", methods=['GET', 'POST'])
+# def get_ideas():
+#     try:
+#         all_texties = Texties.query.filter_by(textie_type='idea').all()
+#         result = texties_schema.dump(all_texties)
+#         return jsonify(result)
+#     except Exception as e:
+#         print(e)
+#         return "error fetching ideas"
         
