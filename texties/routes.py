@@ -173,7 +173,7 @@ def delete_texties():
     try:
         returned = Texties.query.delete()
         print(returned)
-        return json.dumps({'success':True}), 200, {'ContentType':'application/json'}
+        return json.dumps({'success':True, returned:{returned}}), 200, {'ContentType':'application/json'}
     except Exception as e:
         print(e)
         return json.dumps({'success':False, 'Error': e}), 500, {'ContentType':'application/json'}
