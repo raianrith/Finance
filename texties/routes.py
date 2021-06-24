@@ -167,7 +167,23 @@ def get_weight():
     except Exception as e:
         # print(e)
         return json.dumps({'success':False, 'Error': e}), 500, {'ContentType':'application/json'}
-    
+
+@app.route("/delete_texties", methods=['GET','TYPE'])
+def delete_texties():
+    try:
+        returned = Texties.query.delete()
+        print(returned)
+    except Exception as e:
+        print(e)
+
+@app.route("/delete_authentication", methods=['GET','TYPE'])
+def delete_authentication():
+    try:
+        returned = AuthenticationTable.query.delete()
+        print(returned)
+    except Exception as e:
+        print(e)
+
 # @app.route("/get/notes", methods=['GET', 'POST'])
 # def get_notes():
 #     try:
