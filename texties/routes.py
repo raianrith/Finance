@@ -10,6 +10,7 @@ import json
 from flask_jwt_extended import create_access_token
 from flask_jwt_extended import get_jwt_identity
 from flask_jwt_extended import jwt_required
+import os
 
 
 @app.route('/')
@@ -125,28 +126,6 @@ def auth_check():
         return json.dumps({'success':False, 'Error': e}), 500, {'ContentType':'application/json'}
 
 
-@app.route("/get/texties", methods=['GET', 'POST'])
-def get_texties():
-    try:
-        if "phone_number" in session:
-            phone_number = session["phone_number"]
-        else:
-            type=request.args.get('type')
-            phone_number=str(request.args.get('phone_number'))
-            phone_number = phone_number.strip()
-            if(phone_number==None or len(phone_number)==4):
-                redirect(url_for('index'))
-            elif(phone_number[0]=='1'):
-                phone_number = "+"+phone_number
-            elif(phone_number[0]!='1' and phone_number[0]!='+' and len(phone_number)!=4):
-                phone_number = "+1"+phone_number
-        all_texties = Texties.query.filter_by(textie_type=type,phone_number=phone_number).all()
-        result = texties_schema.dump(all_texties)
-        return jsonify(result)
-    except Exception as e:
-        print(e)
-        return json.dumps({'success':False, 'Error': e}), 500, {'ContentType':'application/json'}
-
 @app.route("/get", methods=['GET', 'POST'])
 def get_weight():
     try:
@@ -165,49 +144,35 @@ def get_weight():
         result = texties_schema.dump(all_texties)
         return jsonify(result)
     except Exception as e:
-        # print(e)
         return json.dumps({'success':False, 'Error': e}), 500, {'ContentType':'application/json'}
 
 @app.route("/delete_texties", methods=['GET','TYPE'])
 def delete_texties():
-    try:
-        returned = Texties.query.delete()
-        print(returned)
-        return json.dumps({'success':True, returned:{jsonify(returned)}}), 200, {'ContentType':'application/json'}
-    except Exception as e:
-        print(e)
-        return json.dumps({'success':False, 'Error': e}), 500, {'ContentType':'application/json'}
+    delete_key_args=request.args.get('delete_key')
+    delete_key = os.environ.get("DELETE_KEY")
+    if delete_key_args == delete_key:
+        try:
+            returned = Texties.query.delete()
+            print(returned)
+            return json.dumps({'success':True, returned:{jsonify(returned)}}), 200, {'ContentType':'application/json'}
+        except Exception as e:
+            print(e)
+            return json.dumps({'success':False, 'Error': e}), 500, {'ContentType':'application/json'}
+    else:
+        return json.dumps({'success':False, 'Error': "Incorrect Delete Key"}), 403, {'ContentType':'application/json'}
 
 @app.route("/delete_authentication", methods=['GET','TYPE'])
 def delete_authentication():
-    try:
-        returned = AuthenticationTable.query.delete()
-        print(returned)
-        return json.dumps({'success':True}), 200, {'ContentType':'application/json'}
+    delete_key_args=request.args.get('delete_key')
+    delete_key = os.environ.get("DELETE_KEY")
+    if delete_key_args == delete_key:
+        try:
+            returned = AuthenticationTable.query.delete()
+            print(returned)
+            return json.dumps({'success':True}), 200, {'ContentType':'application/json'}
 
-    except Exception as e:
-        print(e)
-        return json.dumps({'success':False, 'Error': e}), 500, {'ContentType':'application/json'}
-
-
-# @app.route("/get/notes", methods=['GET', 'POST'])
-# def get_notes():
-#     try:
-#         phone_number = session["phone_number"]
-#         all_texties = Texties.query.filter_by(textie_type='note', phone_number=phone_number).all()
-#         result = texties_schema.dump(all_texties)
-#         return jsonify(result)
-#     except Exception as e:
-#         print(e)
-#         return "error fetching notes"
-
-# @app.route("/get/ideas", methods=['GET', 'POST'])
-# def get_ideas():
-#     try:
-#         all_texties = Texties.query.filter_by(textie_type='idea').all()
-#         result = texties_schema.dump(all_texties)
-#         return jsonify(result)
-#     except Exception as e:
-#         print(e)
-#         return "error fetching ideas"
-        
+        except Exception as e:
+            print(e)
+            return json.dumps({'success':False, 'Error': e}), 500, {'ContentType':'application/json'}
+    else:
+        return json.dumps({'success':False, 'Error': "Incorrect Delete Key"}), 403, {'ContentType':'application/json'}
