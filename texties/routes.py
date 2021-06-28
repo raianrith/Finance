@@ -138,9 +138,27 @@ def get_weight():
             phone_number = "+"+phone_number
         elif(phone_number[0]!='1' and phone_number[0]!='+' and len(phone_number)!=4):
             phone_number = "+1"+phone_number
-        print("phone_number=", phone_number)
-        print("type=",type)
         all_texties = Texties.query.filter_by(textie_type=type, phone_number=phone_number).all()
+        result = texties_schema.dump(all_texties)
+        return jsonify(result)
+    except Exception as e:
+        return json.dumps({'success':False, 'Error': e}), 500, {'ContentType':'application/json'}
+
+@app.route("/search", methods=['GET', 'POST'])
+def search():
+    try:
+        type=request.args.get('type')
+        search_text=request.args.get('search_text')
+        phone_number=str(request.args.get('phone_number'))
+        phone_number = phone_number.strip()
+        if(phone_number==None or len(phone_number)==4):
+            redirect(url_for('index'))
+        elif(phone_number[0]=='1'):
+            phone_number = "+"+phone_number
+        elif(phone_number[0]!='1' and phone_number[0]!='+' and len(phone_number)!=4):
+            phone_number = "+1"+phone_number
+
+        all_texties = Texties.query.filter(Texties.textie.contains(search_text)).filter_by(textie_type=type, phone_number=phone_number).all()
         result = texties_schema.dump(all_texties)
         return jsonify(result)
     except Exception as e:
