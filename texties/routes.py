@@ -164,27 +164,33 @@ def delete_texties():
 @app.route("/delete", methods=['GET','POST'])
 def delete():
     try:
-        delete_id=request.args.get('id')
-        try:
-            Texties.query.filter_by(id=delete_id).delete()
-            return json.dumps({'success':True, 'snackBar':"Textie Deleted"}), 200, {'ContentType':'application/json'}
-        except Exception as e:
-            return json.dumps({'success':False, 'Error': e+"Database error"}), 500, {'ContentType':'application/json'}
+        delete_id=int(request.args.get('id'))
     except Exception as e:
-        return json.dumps({'success':False, 'Error': e+"Textie ID not found"}), 403, {'ContentType':'application/json'}
+        return json.dumps({'success':False, 'Error': e}), 403, {'ContentType':'application/json'}
+    try:
+        returned = Texties.query.filter_by(id=delete_id).first()
+        db.session.delete(returned)
+        db.session.commit()
+        return json.dumps({'success':True}), 200, {'ContentType':'application/json'}
+    except Exception as e:
+        return json.dumps({'success':False, 'Error': e}), 500, {'ContentType':'application/json'}
+
 
 @app.route("/update", methods=['GET','POST'])
 def update():
     try:
         update_id=request.args.get('id')
         update_textie=request.args.get('textie')
-        try:
-            Texties.query.filter_by(id=update_id).update(textie=update_textie)
-            return json.dumps({'success':True, 'snackBar':"Textie Updated"}), 200, {'ContentType':'application/json'}
-        except Exception as e:
-            return json.dumps({'success':False, 'Error': e+"Database error"}), 500, {'ContentType':'application/json'}
     except Exception as e:
-        return json.dumps({'success':False, 'Error': e+"Textie ID not found"}), 403, {'ContentType':'application/json'}
+        return json.dumps({'success':False, 'Error': e}), 403, {'ContentType':'application/json'}
+    try:
+        resp = Texties.query.filter_by(id=update_id).first()
+        resp.textie = update_textie
+        db.session.commit()
+        return json.dumps({'success':True, 'snackBar':"Textie Updated"}), 200, {'ContentType':'application/json'}
+    except Exception as e:
+        return json.dumps({'success':False, 'Error': e}), 500, {'ContentType':'application/json'}
+
 
 
 @app.route("/delete_authentication", methods=['GET','TYPE'])

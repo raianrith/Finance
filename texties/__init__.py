@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from typing import Text
+# from typing import Text
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from dotenv import load_dotenv
