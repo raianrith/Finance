@@ -66,6 +66,46 @@ def sms_reply():
     return str(resp)
 
 
+@app.route("/add", methods=['GET', 'POST'])
+def add():
+     try:
+        phone_number=str(request.args.get('phone_number'))
+        phone_number = phone_number.strip()
+        if(phone_number==None or len(phone_number)==4):
+            redirect(url_for('index'))
+        elif(phone_number[0]=='1'):
+            phone_number = "+"+phone_number
+        elif(phone_number[0]!='1' and phone_number[0]!='+' and len(phone_number)!=4):
+            phone_number = "+1"+phone_number
+        body = str(request.args.get('textie'))
+    except Exception as e:
+        return json.dumps({'success':False, 'Error': e}), 400, {'ContentType':'application/json'}
+    try:
+        body_split = body.split(':')
+        if(len(body_split)<2):
+            command = "none"
+        else:
+            command = body_split[0]
+            command = command.strip()
+            command = command.lower()
+            command_body = body_split[1]
+        if command in commands_list:
+            try:
+                textie = str(command_body)
+                textie_type = command
+                data = Texties(textie, textie_type, phone_number)
+                db.session.add(data)
+                db.session.commit()
+                return json.dumps({'success':True}), 200, {'ContentType':'application/json'}
+            except Exception as e:
+                print(e)
+                return json.dumps({'success':False}), 500, {'ContentType':'application/json'}
+        else:
+            return json.dumps({'success':False, 'error':'Command not found'}), 403, {'ContentType':'application/json'}
+    except Exception as e:
+        return json.dumps({'success':False, 'error':'Something went wrong' }), 403, {'ContentType':'application/json'}
+
+
 
 
 @app.route("/auth", methods=['GET', 'POST'])
