@@ -40,7 +40,7 @@ def sms_reply():
     try:
         body_split = body.split(':')
         if(len(body_split)<2):
-            command = "none"
+            command = "note"
         else:
             command = body_split[0]
             command = command.strip()
@@ -83,7 +83,7 @@ def add():
     try:
         body_split = body.split(':')
         if(len(body_split)<2):
-            command = "none"
+            command = "note"
         else:
             command = body_split[0]
             command = command.strip()
