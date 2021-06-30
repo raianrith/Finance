@@ -84,6 +84,7 @@ def add():
         body_split = body.split(':')
         if(len(body_split)<2):
             command = "note"
+            command_body = body
         else:
             command = body_split[0]
             command = command.strip()
