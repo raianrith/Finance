@@ -68,7 +68,7 @@ def sms_reply():
 
 @app.route("/add", methods=['GET', 'POST'])
 def add():
-     try:
+    try:
         phone_number=str(request.args.get('phone_number'))
         phone_number = phone_number.strip()
         if(phone_number==None or len(phone_number)==4):
