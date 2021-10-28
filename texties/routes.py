@@ -10,6 +10,7 @@ import json
 from flask_jwt_extended import create_access_token
 from flask_jwt_extended import get_jwt_identity
 from flask_jwt_extended import jwt_required
+import re
 import os
 
 
@@ -29,9 +30,10 @@ def token():
 commands_list = ['weight','note','idea','reminder']
 positive_emojis=['🙌','📝','🎉','🥳','👯','🎊','🤪','👌']
 random_positive_emoji= random.randint(0,len(positive_emojis)-1)
+phone_num_regex=re.compile(r'((?:\+\d{2}[-\.\s]??|\d{4}[-\.\s]??)?(?:\d{3}[-\.\s]??\d{3}[-\.\s]??\d{4}|\(\d{3}\)\s*\d{3}[-\.\s]??\d{4}|\d{3}[-\.\s]??\d{4}))')
 
 
-
+# Save a textie along with its type
 @app.route("/sms", methods=['GET', 'POST'])
 def sms_reply():
     body = request.values.get('Body', None)
@@ -66,18 +68,14 @@ def sms_reply():
 
     return str(resp)
 
-
+# Add textie for web app
 @app.route("/add", methods=['GET', 'POST'])
 def add():
     try:
         phone_number=str(request.args.get('phone_number'))
-        phone_number = phone_number.strip()
-        if(phone_number==None or len(phone_number)==4):
-            redirect(url_for('index'))
-        elif(phone_number[0]=='1'):
-            phone_number = "+"+phone_number
-        elif(phone_number[0]!='1' and phone_number[0]!='+' and len(phone_number)!=4):
-            phone_number = "+1"+phone_number
+        phone_number = phone_check(phone_number)
+        if phone_number==False:
+            return json.dumps({'success':False, 'error':'Invalid phone number format'}), 403, {'ContentType':'application/json'}
         body = str(request.args.get('textie'))
     except Exception as e:
         return json.dumps({'success':False, 'Error': e}), 400, {'ContentType':'application/json'}
@@ -107,20 +105,25 @@ def add():
     except Exception as e:
         return json.dumps({'success':False, 'error':'Something went wrong' }), 403, {'ContentType':'application/json'}
 
+#Check phone number validity and change it to E.164 format
+def phone_check(number):
+    number=number.strip()
+    number=(re.sub('[^A-Za-z0-9]+','',number))
+    if(number[0]=='1'and len(number)==11):
+        number = number[1:]
+    if phone_num_regex.match(number) and len(number)==10:
+        return number
+    else:
+        return False
 
-
-
+# Check phone number and send auth code
 @app.route("/auth", methods=['GET', 'POST'])
 def auth():
     try:
         phone_number=str(request.args.get('phone_number'))
-        phone_number = phone_number.strip()
-        if(phone_number==None or len(phone_number)==4):
-            redirect(url_for('index'))
-        elif(phone_number[0]=='1'):
-            phone_number = "+"+phone_number
-        elif(phone_number[0]!='1' and phone_number[0]!='+' and len(phone_number)!=4):
-            phone_number = "+1"+phone_number
+        phone_number = phone_check(phone_number)
+        if phone_number==False:
+            return json.dumps({'success':False, 'error':'Invalid phone number format'}), 403, {'ContentType':'application/json'}
         auth_code = str(random.randint(1111,9999))
     except Exception as e:
         return json.dumps({'success':False, 'Error': e}), 400, {'ContentType':'application/json'}
@@ -135,13 +138,15 @@ def auth():
                               from_='+15126050927',
                               to=phone_number
                           )
+            print("HERE")
         except Exception as e:
-            return json.dumps({'success':False, 'Error': e+" Error in sending message", }), 500, {'ContentType':'application/json'}
+            print("HERE1")
+            return json.dumps({'success':False, 'Error': "Incorrect number. Please try again.", }), 500, {'ContentType':'application/json'}
     except Exception as e:
-        return json.dumps({'success':False, 'Error': e+" Error in adding auth code to database"}), 500, {'ContentType':'application/json'}
+        return json.dumps({'success':False, 'Error': "Error in adding auth code to database"}), 500, {'ContentType':'application/json'}
     return json.dumps({'success':True}), 200, {'ContentType':'application/json'}
 
-
+# Check auth code against database for phone number
 @app.route("/auth_check", methods=['GET','POST'])
 def auth_check():
     try:
@@ -167,45 +172,38 @@ def auth_check():
     except Exception as e:
         return json.dumps({'success':False, 'Error': e}), 500, {'ContentType':'application/json'}
 
-
+# Get a type of textie
 @app.route("/get", methods=['GET', 'POST'])
 def get_weight():
     try:
         type=request.args.get('type')
         phone_number=str(request.args.get('phone_number'))
-        phone_number = phone_number.strip()
-        if(phone_number==None or len(phone_number)==4):
-            redirect(url_for('index'))
-        elif(phone_number[0]=='1'):
-            phone_number = "+"+phone_number
-        elif(phone_number[0]!='1' and phone_number[0]!='+' and len(phone_number)!=4):
-            phone_number = "+1"+phone_number
+        phone_number = phone_check(phone_number)
+        if phone_number==False:
+            return json.dumps({'success':False, 'error':'Invalid phone number format'}), 403, {'ContentType':'application/json'}
         all_texties = Texties.query.filter_by(textie_type=type, phone_number=phone_number).all()
         result = texties_schema.dump(all_texties)
         return jsonify(result)
     except Exception as e:
         return json.dumps({'success':False, 'Error': e}), 500, {'ContentType':'application/json'}
 
+# Search for a type of textie
 @app.route("/search", methods=['GET', 'POST'])
 def search():
     try:
         type=request.args.get('type')
         search_text=request.args.get('search_text')
         phone_number=str(request.args.get('phone_number'))
-        phone_number = phone_number.strip()
-        if(phone_number==None or len(phone_number)==4):
-            redirect(url_for('index'))
-        elif(phone_number[0]=='1'):
-            phone_number = "+"+phone_number
-        elif(phone_number[0]!='1' and phone_number[0]!='+' and len(phone_number)!=4):
-            phone_number = "+1"+phone_number
-
+        phone_number = phone_check(phone_number)
+        if phone_number==False:
+            return json.dumps({'success':False, 'error':'Invalid phone number format'}), 403, {'ContentType':'application/json'}
         all_texties = Texties.query.filter(Texties.textie.contains(search_text)).filter_by(textie_type=type, phone_number=phone_number).all()
         result = texties_schema.dump(all_texties)
         return jsonify(result)
     except Exception as e:
         return json.dumps({'success':False, 'Error': e}), 500, {'ContentType':'application/json'}
 
+# Delete a textie from the database
 @app.route("/delete_texties", methods=['GET','TYPE'])
 def delete_texties():
     delete_key_args=request.args.get('delete_key')
@@ -221,6 +219,7 @@ def delete_texties():
     else:
         return json.dumps({'success':False, 'Error': "Incorrect Delete Key"}), 403, {'ContentType':'application/json'}
 
+# Delete a textie from database
 @app.route("/delete", methods=['GET','POST'])
 def delete():
     try:
@@ -235,7 +234,7 @@ def delete():
     except Exception as e:
         return json.dumps({'success':False, 'Error': e}), 500, {'ContentType':'application/json'}
 
-
+# Update a textie in the database
 @app.route("/update", methods=['GET','POST'])
 def update():
     try:
@@ -252,7 +251,7 @@ def update():
         return json.dumps({'success':False, 'Error': e}), 500, {'ContentType':'application/json'}
 
 
-
+# Delete auth codes from the database
 @app.route("/delete_authentication", methods=['GET','TYPE'])
 def delete_authentication():
     delete_key_args=request.args.get('delete_key')
