@@ -153,13 +153,9 @@ def auth_check():
         auth_code= str(request.args.get('auth_code'))
         auth_code = auth_code.strip()
         auth_phone_number=str(request.args.get('phone_number'))
-        auth_phone_number = auth_phone_number.strip()
-        if(auth_phone_number==None or len(auth_phone_number)==4):
-            return json.dumps({'success':False, 'Error': "Phone number not entered"}), 400, {'ContentType':'application/json'}
-        elif(auth_phone_number[0]=='1'):
-            auth_phone_number = "+"+auth_phone_number
-        elif(auth_phone_number[0]!='1' and auth_phone_number[0]!='+' and len(auth_phone_number)!=4):
-            auth_phone_number = "+1"+auth_phone_number
+        auth_phone_number = phone_check(auth_phone_number)
+        if auth_phone_number==False:
+            return json.dumps({'success':False, 'error':'Invalid phone number format'}), 403, {'ContentType':'application/json'}
     except Exception as e:
         return json.dumps({'success':False, 'Error': e}), 400, {'ContentType':'application/json'}
     try:
