@@ -138,9 +138,7 @@ def auth():
                               from_='+15126050927',
                               to=phone_number
                           )
-            print("HERE")
         except Exception as e:
-            print("HERE1")
             return json.dumps({'success':False, 'Error': "Incorrect number. Please try again.", }), 500, {'ContentType':'application/json'}
     except Exception as e:
         return json.dumps({'success':False, 'Error': "Error in adding auth code to database"}), 500, {'ContentType':'application/json'}
@@ -182,6 +180,36 @@ def get_weight():
         return jsonify(result)
     except Exception as e:
         return json.dumps({'success':False, 'Error': e}), 500, {'ContentType':'application/json'}
+
+@app.route("/signup",methods=['GET','POST'])
+def signup():
+    try:
+        phone_number=str(request.args.get('phone_number'))
+        phone_number = phone_check(phone_number)
+        if phone_number==False:
+            return json.dumps({'success':False, 'error':'Invalid phone number format'}), 403, {'ContentType':'application/json'}
+        try:
+            # welcome_message="hey"
+            welcome_message = "Welcome to texties! \nYou can save your notes by texting me anytime. To learn more reply with --help"
+            message = client.messages.create(
+                                body=welcome_message,
+                                from_='+15126050927',
+                                to=phone_number
+                            )
+            samples = 'Here are some sample texts you can send me.\n\n\nnote: Return library card\n\nidea: Create a meowCoin 🐈🪙\n\nweight: 145lbs'
+            message = client.messages.create(
+                                body=samples,
+                                from_='+15126050927',
+                                to=phone_number
+                            )
+            return json.dumps({'success':True}), 200, {'ContentType':'application/json'}
+        except Exception as e:
+            return json.dumps({'success':False, 'Error': "Incorrect number. Please try again.", }), 500, {'ContentType':'application/json'}
+        
+    except Exception as e:
+        return json.dumps({'success':False, 'Error': e}), 500, {'ContentType':'application/json'}
+
+
 
 # Search for a type of textie
 @app.route("/search", methods=['GET', 'POST'])
