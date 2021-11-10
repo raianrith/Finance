@@ -71,6 +71,7 @@ def sms_reply():
 # Add textie for web app
 @app.route("/add", methods=['GET', 'POST'])
 def add():
+    body = request.values.get('Body', None) 
     try:
         phone_number=str(request.args.get('phone_number'))
         phone_number = phone_check(phone_number)
