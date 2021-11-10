@@ -115,7 +115,7 @@ def phone_check(number):
     if(number[0]=='1'and len(number)==11):
         number = number[1:]
     if phone_num_regex.match(number) and len(number)==10:
-        return number
+        return "+1"+number
     else:
         return False
 
