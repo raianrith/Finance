@@ -38,6 +38,9 @@ phone_num_regex=re.compile(r'((?:\+\d{2}[-\.\s]??|\d{4}[-\.\s]??)?(?:\d{3}[-\.\s
 def sms_reply():
     body = request.values.get('Body', None)
     phone_number = request.values.get('From', None)
+    phone_number = phone_check(phone_number)
+    if phone_number==False:
+            return json.dumps({'success':False, 'error':'Invalid phone number format'}), 403, {'ContentType':'application/json'}
     resp = MessagingResponse()
     try:
         body_split = body.split(':')
