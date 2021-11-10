@@ -71,13 +71,12 @@ def sms_reply():
 # Add textie for web app
 @app.route("/add", methods=['GET', 'POST'])
 def add():
-    body = request.values.get('Body', None) 
     try:
+        body = str(request.args.get('textie'))
         phone_number=str(request.args.get('phone_number'))
         phone_number = phone_check(phone_number)
         if phone_number==False:
             return json.dumps({'success':False, 'error':'Invalid phone number format'}), 403, {'ContentType':'application/json'}
-        body = str(request.args.get('textie'))
     except Exception as e:
         return json.dumps({'success':False, 'Error': e}), 400, {'ContentType':'application/json'}
     try:
