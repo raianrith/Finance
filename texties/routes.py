@@ -25,6 +25,12 @@ def token():
     response.headers.add('Access-Control-Allow-Origin', '*')
     return response
 
+@app.route('/return_secret', methods=['GET'])
+def return_secret():
+    try:
+        return jsonify({"secret": os.environ['BIG_SECRET']})
+    except:
+        return jsonify({"secret": "No secret found"})
 
 
 commands_list = ['weight','note','idea','reminder']
