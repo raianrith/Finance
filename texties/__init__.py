@@ -16,27 +16,29 @@ from flask_jwt_extended import JWTManager
 app = Flask(__name__)
 
 # Setup the Flask-JWT-Extended extension
-app.config["JWT_SECRET_KEY"] = "djsbglwiuhp08yr4r984gh94u8gw98rhg4u5th9e8rgh58ghergh8euh098"  # Change this!
+app.config["JWT_SECRET_KEY"] = os.environ['JWT_SECRET_KEY']
 jwt = JWTManager(app)
 
 CORS(app)
-app.secret_key = "supersecshrlweifjhgaslihgfsghas35465454654sd6gf54s6f5g4s6f5gretkey"
+app.secret_key = os.environ['APP_SECRET_KEY']
+
 #If sms is received twilio will hit this function with the message
 dotenv_path = join(dirname(__file__), '.env')
 load_dotenv(dotenv_path)
 
-account_sid = 'ACa8d0cb233f2f43304aab97b8f4e52f8e'
-auth_token = '44cfcd02cd6a78664cdc215f079bc65a'
+# Load the Twilio configuration from the environment variables
+account_sid = os.environ['ACCOUNT_SID']
+auth_token = os.environ['TWILIO_AUTH_TOKEN']
 client = Client(account_sid, auth_token)
 
-
-ENV = 'prod'
+# Load DEV/PROD configuration from the environment variables
+ENV = os.environ['APP_ENV']
 if ENV == 'dev':
     app.debug = True
     app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DEV_DATABASE_URL")
 else:
     app.debug=False
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://egvyaqyigaujuu:0f852e4602daf4f86ceb0919aa6510631585c97b4ecf2cf7ef9fae02516f6a38@ec2-54-158-232-223.compute-1.amazonaws.com:5432/d8k8274ljhv05'
+    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("SQLALCHEMY_DATABASE_URI")
 db = SQLAlchemy(app)
 marsh = Marshmallow(app)
 

@@ -25,12 +25,12 @@ def token():
     response.headers.add('Access-Control-Allow-Origin', '*')
     return response
 
-@app.route('/return_secret', methods=['GET'])
-def return_secret():
-    try:
-        return jsonify({"secret": os.environ['BIG_SECRET']})
-    except:
-        return jsonify({"secret": "No secret found"})
+# @app.route('/return_secret', methods=['GET'])
+# def return_secret():
+#     try:
+#         return jsonify({"secret": os.environ['BIG_SECRET']})
+#     except:
+#         return jsonify({"secret": "No secret found"})
 
 
 commands_list = ['weight','note','idea','reminder']
@@ -240,7 +240,7 @@ def search():
 @app.route("/delete_texties", methods=['GET','TYPE'])
 def delete_texties():
     delete_key_args=request.args.get('delete_key')
-    delete_key = os.environ.get("DELETE_KEY")
+    delete_key = os.environ['DELETE_KEY']
     if delete_key_args == delete_key:
         try:
             returned = Texties.query.delete()
