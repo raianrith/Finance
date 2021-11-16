@@ -251,7 +251,8 @@ def search():
         result = texties_schema.dump(all_texties)
         return jsonify(result)
     except Exception as e:
-        return json.dumps({'success':False, 'Error': e}), 500, {'ContentType':'application/json'}
+        # return json.dumps({'success':False, 'Error': e}), 500, {'ContentType':'application/json'}
+        return return_error(e)
 
 # Delete a textie from the database
 @app.route("/delete_texties", methods=['GET','TYPE'])
