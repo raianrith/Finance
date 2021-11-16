@@ -10,6 +10,7 @@ import json
 from flask_jwt_extended import create_access_token
 from flask_jwt_extended import get_jwt_identity
 from flask_jwt_extended import jwt_required
+from werkzeug.exceptions import HTTPException
 import re
 import os
 
@@ -17,6 +18,21 @@ import os
 @app.route('/')
 def index():
     return json.dumps({'Error':'Nothing to look here. Move on chump!'})
+
+
+@app.errorhandler(HTTPException)
+def return_error(e):
+    """Return JSON instead of HTML for HTTP errors."""
+    # start with the correct headers and status code from the error
+    response = e.get_response()
+    # replace the body with JSON
+    response.data = json.dumps({
+        "code": e.code,
+        "name": e.name,
+        "description": e.description,
+    })
+    response.content_type = "application/json"
+    return response
 
 @app.route('/token')
 def token():
@@ -87,7 +103,8 @@ def add():
         if phone_number==False:
             return json.dumps({'success':False, 'error':'Invalid phone number format'}), 403, {'ContentType':'application/json'}
     except Exception as e:
-        return json.dumps({'success':False, 'Error': e}), 400, {'ContentType':'application/json'}
+        # return json.dumps({'success':False, 'Error': e}), 400, {'ContentType':'application/json'}
+        return return_error(e)
     try:
         body_split = body.split(':')
         if(len(body_split)<2):
