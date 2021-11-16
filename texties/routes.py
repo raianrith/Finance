@@ -48,7 +48,7 @@ def custom_error(code, description):
         "description": description,
     })
     content_type = "application/json"
-    return json.dumps({data}, {content_type})
+    return data, content_type
 
 
 #Check phone number validity and change it to E.164 format
