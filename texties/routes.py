@@ -15,11 +15,13 @@ import re
 import os
 
 
-@app.route('/')
-def index():
-    return json.dumps({'Error':'Nothing to look here. Move on chump!'})
+commands_list = ['weight','note','idea','reminder']
+positive_emojis=['🙌','📝','🎉','🥳','👯','🎊','🤪','👌']
+random_positive_emoji= random.randint(0,len(positive_emojis)-1)
+phone_num_regex=re.compile(r'((?:\+\d{2}[-\.\s]??|\d{4}[-\.\s]??)?(?:\d{3}[-\.\s]??\d{3}[-\.\s]??\d{4}|\(\d{3}\)\s*\d{3}[-\.\s]??\d{4}|\d{3}[-\.\s]??\d{4}))')
 
 
+#General Error handler
 @app.errorhandler(HTTPException)
 def return_error(e):
     """Return JSON instead of HTML for HTTP errors."""
@@ -34,26 +36,44 @@ def return_error(e):
     response.content_type = "application/json"
     return response
 
+
+
+def custom_error(code, description):
+    """Return JSON instead of HTML for HTTP errors."""
+    # start with the correct headers and status code from the error
+    
+    # replace the body with JSON
+    data = json.dumps({
+        "code": code,
+        "description": description,
+    })
+    content_type = "application/json"
+    return json.dumps({data, content_type})
+
+
+#Check phone number validity and change it to E.164 format
+def phone_check(number):
+    number=number.strip()
+    number=(re.sub('[^A-Za-z0-9]+','',number))
+    if(number[0]=='1'and len(number)==11):
+        number = number[1:]
+    if phone_num_regex.match(number) and len(number)==10:
+        return "+1"+number
+    else:
+        return False
+
+
+@app.route('/')
+def index():
+    return json.dumps({'Error':'Nothing to look here. Move on chump!'})
+
+#Return access token
 @app.route('/token')
 def token():
     access_token = create_access_token(identity="test")
     response = json.dumps({'success':True, 'access_token':access_token}), 200, {'ContentType':'application/json'}
     response.headers.add('Access-Control-Allow-Origin', '*')
     return response
-
-# @app.route('/return_secret', methods=['GET'])
-# def return_secret():
-#     try:
-#         return jsonify({"secret": os.environ['BIG_SECRET']})
-#     except:
-#         return jsonify({"secret": "No secret found"})
-
-
-commands_list = ['weight','note','idea','reminder']
-positive_emojis=['🙌','📝','🎉','🥳','👯','🎊','🤪','👌']
-random_positive_emoji= random.randint(0,len(positive_emojis)-1)
-phone_num_regex=re.compile(r'((?:\+\d{2}[-\.\s]??|\d{4}[-\.\s]??)?(?:\d{3}[-\.\s]??\d{3}[-\.\s]??\d{4}|\(\d{3}\)\s*\d{3}[-\.\s]??\d{4}|\d{3}[-\.\s]??\d{4}))')
-
 
 # Save a textie along with its type
 @app.route("/sms", methods=['GET', 'POST'])
@@ -62,7 +82,8 @@ def sms_reply():
     phone_number = request.values.get('From', None)
     phone_number = phone_check(phone_number)
     if phone_number==False:
-            return json.dumps({'success':False, 'error':'Invalid phone number format'}), 403, {'ContentType':'application/json'}
+            return custom_error(403, "Invalid phone number format")
+            # return json.dumps({'success':False, 'error':'Invalid phone number format'}), 403, {'ContentType':'application/json'}
     resp = MessagingResponse()
     try:
         body_split = body.split(':')
@@ -84,7 +105,6 @@ def sms_reply():
                 db.session.commit()
                 resp.message("Your "+ command+" has been recorded "+positive_emojis[random_positive_emoji])
             except Exception as e:
-                print(e)
                 resp.message("Hmm, that was weird. Let me try to fix that. 🧰")
         else:
             resp.message("Hmm, textie i don't understand 😕. \n Here are the commands i understand for now (note, weight, reminder, idea)")
@@ -103,7 +123,6 @@ def add():
         if phone_number==False:
             return json.dumps({'success':False, 'error':'Invalid phone number format'}), 403, {'ContentType':'application/json'}
     except Exception as e:
-        # return json.dumps({'success':False, 'Error': e}), 400, {'ContentType':'application/json'}
         return return_error(e)
     try:
         body_split = body.split(':')
@@ -124,23 +143,13 @@ def add():
                 db.session.commit()
                 return json.dumps({'success':True}), 200, {'ContentType':'application/json'}
             except Exception as e:
-                print(e)
-                return json.dumps({'success':False}), 500, {'ContentType':'application/json'}
+                return return_error(e)
         else:
-            return json.dumps({'success':False, 'error':'Command not found'}), 403, {'ContentType':'application/json'}
+            return return_error(e)
     except Exception as e:
-        return json.dumps({'success':False, 'error':'Something went wrong' }), 403, {'ContentType':'application/json'}
+        return return_error(e)
 
-#Check phone number validity and change it to E.164 format
-def phone_check(number):
-    number=number.strip()
-    number=(re.sub('[^A-Za-z0-9]+','',number))
-    if(number[0]=='1'and len(number)==11):
-        number = number[1:]
-    if phone_num_regex.match(number) and len(number)==10:
-        return "+1"+number
-    else:
-        return False
+
 
 # Check phone number and send auth code
 @app.route("/auth", methods=['GET', 'POST'])
@@ -152,7 +161,7 @@ def auth():
             return json.dumps({'success':False, 'error':'Invalid phone number format'}), 403, {'ContentType':'application/json'}
         auth_code = str(random.randint(1111,9999))
     except Exception as e:
-        return json.dumps({'success':False, 'Error': e}), 400, {'ContentType':'application/json'}
+        return return_error(e)
     try:
         data = AuthenticationTable(auth_code,phone_number)
         db.session.add(data)
@@ -165,9 +174,9 @@ def auth():
                               to=phone_number
                           )
         except Exception as e:
-            return json.dumps({'success':False, 'Error': "Incorrect number. Please try again.", }), 500, {'ContentType':'application/json'}
+            return return_error(e)
     except Exception as e:
-        return json.dumps({'success':False, 'Error': "Error in adding auth code to database"}), 500, {'ContentType':'application/json'}
+        return return_error(e)
     return json.dumps({'success':True}), 200, {'ContentType':'application/json'}
 
 # Check auth code against database for phone number
@@ -181,7 +190,7 @@ def auth_check():
         if auth_phone_number==False:
             return json.dumps({'success':False, 'error':'Invalid phone number format'}), 403, {'ContentType':'application/json'}
     except Exception as e:
-        return json.dumps({'success':False, 'Error': e}), 400, {'ContentType':'application/json'}
+        return return_error(e)
     try:
         response = AuthenticationTable.query.filter_by(phone_number=auth_phone_number).order_by(AuthenticationTable.id.desc()).all()
         if(str(response[0].auth_code) ==  auth_code):
@@ -190,7 +199,7 @@ def auth_check():
         else:
             return json.dumps({'success':False, 'Error': 'Auth Code Incorrect'}), 403, {'ContentType':'application/json'}
     except Exception as e:
-        return json.dumps({'success':False, 'Error': e}), 500, {'ContentType':'application/json'}
+        return return_error(e)
 
 # Get a type of textie
 @app.route("/get", methods=['GET', 'POST'])
@@ -205,7 +214,7 @@ def get_weight():
         result = texties_schema.dump(all_texties)
         return jsonify(result)
     except Exception as e:
-        return json.dumps({'success':False, 'Error': e}), 500, {'ContentType':'application/json'}
+        return return_error(e)
 
 @app.route("/signup",methods=['GET','POST'])
 def signup():
@@ -230,10 +239,9 @@ def signup():
                             )
             return json.dumps({'success':True}), 200, {'ContentType':'application/json'}
         except Exception as e:
-            return json.dumps({'success':False, 'Error': "Incorrect number. Please try again.", }), 500, {'ContentType':'application/json'}
-        
+            return return_error(e)
     except Exception as e:
-        return json.dumps({'success':False, 'Error': e}), 500, {'ContentType':'application/json'}
+        return return_error(e)
 
 
 
@@ -251,7 +259,6 @@ def search():
         result = texties_schema.dump(all_texties)
         return jsonify(result)
     except Exception as e:
-        # return json.dumps({'success':False, 'Error': e}), 500, {'ContentType':'application/json'}
         return return_error(e)
 
 # Delete a textie from the database
@@ -265,8 +272,7 @@ def delete_texties():
             print(returned)
             return json.dumps({'success':True, returned:{jsonify(returned)}}), 200, {'ContentType':'application/json'}
         except Exception as e:
-            print(e)
-            return json.dumps({'success':False, 'Error': e}), 500, {'ContentType':'application/json'}
+            return return_error(e)
     else:
         return json.dumps({'success':False, 'Error': "Incorrect Delete Key"}), 403, {'ContentType':'application/json'}
 
@@ -276,14 +282,14 @@ def delete():
     try:
         delete_id=int(request.args.get('id'))
     except Exception as e:
-        return json.dumps({'success':False, 'Error': e}), 403, {'ContentType':'application/json'}
+        return return_error(e)
     try:
         returned = Texties.query.filter_by(id=delete_id).first()
         db.session.delete(returned)
         db.session.commit()
         return json.dumps({'success':True}), 200, {'ContentType':'application/json'}
     except Exception as e:
-        return json.dumps({'success':False, 'Error': e}), 500, {'ContentType':'application/json'}
+        return return_error(e)
 
 # Update a textie in the database
 @app.route("/update", methods=['GET','POST'])
@@ -292,14 +298,14 @@ def update():
         update_id=request.args.get('id')
         update_textie=request.args.get('textie')
     except Exception as e:
-        return json.dumps({'success':False, 'Error': e}), 403, {'ContentType':'application/json'}
+        return return_error(e)
     try:
         resp = Texties.query.filter_by(id=update_id).first()
         resp.textie = update_textie
         db.session.commit()
         return json.dumps({'success':True, 'snackBar':"Textie Updated"}), 200, {'ContentType':'application/json'}
     except Exception as e:
-        return json.dumps({'success':False, 'Error': e}), 500, {'ContentType':'application/json'}
+        return return_error(e)
 
 
 # Delete auth codes from the database
@@ -312,9 +318,7 @@ def delete_authentication():
             returned = AuthenticationTable.query.delete()
             print(returned)
             return json.dumps({'success':True}), 200, {'ContentType':'application/json'}
-
         except Exception as e:
-            print(e)
-            return json.dumps({'success':False, 'Error': e}), 500, {'ContentType':'application/json'}
+            return return_error(e)
     else:
         return json.dumps({'success':False, 'Error': "Incorrect Delete Key"}), 403, {'ContentType':'application/json'}
