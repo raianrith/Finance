@@ -11,6 +11,7 @@ from flask_jwt_extended import create_access_token
 from flask_jwt_extended import get_jwt_identity
 from flask_jwt_extended import jwt_required
 from werkzeug.exceptions import HTTPException
+from texties.parse import Parser
 import re
 import os
 
@@ -71,32 +72,31 @@ def sms_reply():
             return json.dumps({'success':False, 'error':'Invalid phone number format'}), 403, {'ContentType':'application/json'}
     resp = MessagingResponse()
     try:
-        body_split = body.split(':')
-        if(len(body_split)<2):
-            command = "note"
-            command_body = body
+        parser = Parser(body)
+        if len(parser.errors) < 1:
+            texties_to_db("sms", resp, parser.textie, parser.category, phone_number)    
         else:
-            command = body_split[0]
-            command = command.strip()
-            command = command.lower()
-            command_body = body_split[1]
-        if command in commands_list:
-            #save weight
-            try:
-                textie = str(command_body)
-                textie_type = command
-                data = Texties(textie, textie_type, phone_number)
-                db.session.add(data)
-                db.session.commit()
-                resp.message("Your "+ command+" has been recorded "+positive_emojis[random_positive_emoji])
-            except Exception as e:
-                resp.message("Hmm, that was weird. Let me try to fix that. 🧰")
-        else:
-            resp.message("Hmm, textie i don't understand 😕. \n Here are the commands i understand for now (note, weight, reminder, idea)")
+            for error in parser.errors:
+                resp.message(error)
     except Exception as e:
         resp.message("Looks like I am having some issues textie. Let's try later 🥺")
-
     return str(resp)
+
+# Post textie to DB
+def textie_to_db(medium, resp, textie, textie_type, phone_number):
+    try:
+        data = Texties(textie, textie_type, phone_number)
+        db.session.add(data)
+        db.session.commit()
+        if medium == "sms":
+            resp.message("Your "+ command+" has been recorded "+positive_emojis[random_positive_emoji])
+        else:
+            json.dumps({'success':True}), 200, {'ContentType':'application/json'}
+    except Exception as e:
+        if medium == "sms":
+            resp.message("Hmm, that was weird. Let me try to fix that. 🧰")
+        else:
+            return return_error(e)
 
 # Add textie for web app
 @app.route("/add", methods=['GET', 'POST'])
@@ -110,27 +110,11 @@ def add():
     except Exception as e:
         return return_error(e)
     try:
-        body_split = body.split(':')
-        if(len(body_split)<2):
-            command = "note"
-            command_body = body
+        parser = Parser(body)
+        if len(parser.errors) < 1:
+            texties_to_db("web", resp, parser.textie, parser.category, phone_number)    
         else:
-            command = body_split[0]
-            command = command.strip()
-            command = command.lower()
-            command_body = body_split[1]
-        if command in commands_list:
-            try:
-                textie = str(command_body)
-                textie_type = command
-                data = Texties(textie, textie_type, phone_number)
-                db.session.add(data)
-                db.session.commit()
-                return json.dumps({'success':True}), 200, {'ContentType':'application/json'}
-            except Exception as e:
-                return return_error(e)
-        else:
-            return return_error(e)
+            return_error(parser.errors[0])
     except Exception as e:
         return return_error(e)
 
@@ -215,7 +199,7 @@ def signup():
                                 body=welcome_message,
                                 from_='+15126050927',
                                 to=phone_number
-                            )
+                            ) 
             samples = 'Here are some sample texts you can send me.\n\n\nnote: Return library card\n\nidea: Create a meowCoin 🐈🪙\n\nweight: 145lbs'
             message = client.messages.create(
                                 body=samples,
