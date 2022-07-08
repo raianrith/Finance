@@ -1,6 +1,7 @@
 import validators
 class Parser():
 
+    #Initialize Parser
     def __init__(self, raw_textie, category="note", textie="", errors = []):
         raw_textie = self.raw_textie
         category = self.category
