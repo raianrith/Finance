@@ -14,6 +14,7 @@ from werkzeug.exceptions import HTTPException
 from texties.parse import Parser
 import re
 import os
+import flask
 
 
 commands_list = ['weight','note','idea','reminder']
@@ -28,6 +29,7 @@ def return_error(e):
     """Return JSON instead of HTML for HTTP errors."""
     # start with the correct headers and status code from the error
     response = e.get_response()
+    response.headers.add('Access-Control-Allow-Origin', '*')
     # replace the body with JSON
     response.data = json.dumps({
         "code": e.code,
@@ -74,7 +76,7 @@ def sms_reply():
     try:
         parser = Parser(body)
         if len(parser.errors) < 1:
-            texties_to_db("sms", resp, parser.textie, parser.category, phone_number)    
+            textie_to_db("sms", resp, parser.textie, parser.category, phone_number)    
         else:
             for error in parser.errors:
                 resp.message(error)
@@ -89,9 +91,16 @@ def textie_to_db(medium, resp, textie, textie_type, phone_number):
         db.session.add(data)
         db.session.commit()
         if medium == "sms":
-            resp.message("Your "+ command+" has been recorded "+positive_emojis[random_positive_emoji])
+            resp.message("Your "+ textie_type+" has been recorded "+positive_emojis[random_positive_emoji])
         else:
-            json.dumps({'success':True}), 200, {'ContentType':'application/json'}
+            response = flask.jsonify({'some': 'data'})
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            response.data = json.dumps({
+        "success": True,
+        "code": 200,
+        })
+        response.content_type = "application/json"
+        return response
     except Exception as e:
         if medium == "sms":
             resp.message("Hmm, that was weird. Let me try to fix that. 🧰")
@@ -112,7 +121,7 @@ def add():
     try:
         parser = Parser(body)
         if len(parser.errors) < 1:
-            texties_to_db("web", resp, parser.textie, parser.category, phone_number)    
+            textie_to_db("web", "", parser.textie, parser.category, phone_number)    
         else:
             return_error(parser.errors[0])
     except Exception as e:
