@@ -31,7 +31,7 @@ class Parser():
             self.textie = raw_textie
 
     #Check if textie is a url
-    def is_url(self, raw_textie)
+    def is_url(self, raw_textie):
         return validators.url(raw_textie)
         
 
