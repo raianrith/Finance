@@ -21,6 +21,7 @@ class Parser():
         #Check if textie is a link
         if self.is_url(self.raw_textie) == True:
             self.category = "url"
+            self.textie = self.raw_textie
             return
 
         #Check if textie has a type
