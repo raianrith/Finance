@@ -121,11 +121,17 @@ def add():
     try:
         parser = Parser(body)
         if len(parser.errors) < 1:
-            textie_to_db("web", "", parser.textie, parser.category, phone_number)    
+            res = textie_to_db("web", "", str(parser.textie), str(parser.category), str(phone_number))
+            print(res.data)
+            # if res.data.success == True:
+            #         return json.dumps({'success':True, 'textie':body, }), 403, {'ContentType':'application/json'}
+            # else:
+            #     return return_error(({"success":False}),res)
         else:
             return_error(parser.errors[0])
     except Exception as e:
         return return_error(e)
+    return json.dumps({'success':True, 'textie':body, }), 403, {'ContentType':'application/json'}
 
 
 
@@ -243,7 +249,7 @@ def search():
 @app.route("/delete_texties", methods=['GET','TYPE'])
 def delete_texties():
     delete_key_args=request.args.get('delete_key')
-    delete_key = os.environ['DELETE_KEY']
+    delete_key = os.environ.get('DELETE_KEY','asdnaksjdnakjsdnalksdnadlaksndlakjsfowjhgskdjbsihbg')
     if delete_key_args == delete_key:
         try:
             returned = Texties.query.delete()
@@ -290,7 +296,7 @@ def update():
 @app.route("/delete_authentication", methods=['GET','TYPE'])
 def delete_authentication():
     delete_key_args=request.args.get('delete_key')
-    delete_key = os.environ.get("DELETE_KEY")
+    delete_key = os.environ.get('DELETE_KEY','asdnaksjdnakjsdnalksdnadlaksndlakjsfowjhgskdjbsihbg')
     if delete_key_args == delete_key:
         try:
             returned = AuthenticationTable.query.delete()

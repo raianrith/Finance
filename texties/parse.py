@@ -3,11 +3,11 @@ class Parser():
 
     #Initialize Parser
     def __init__(self, raw_textie, category="note", textie="", errors = []):
-        raw_textie = self.raw_textie
-        category = self.category
-        textie = self.textie
-        errors = self.errors 
-        self.parse()
+        self.raw_textie = raw_textie
+        self.category = category
+        self.textie = textie
+        self.errors = errors 
+        self.parse(self.raw_textie)
 
     #Add error
     def set_error(self, error):
