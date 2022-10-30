@@ -37,6 +37,20 @@ def return_error(e):
     return response
 
 
+
+def custom_error(code, description):
+    """Return JSON instead of HTML for HTTP errors."""
+    # start with the correct headers and status code from the error
+    
+    # replace the body with JSON
+    data = json.dumps({
+        "code": code,
+        "description": description,
+    })
+    content_type = "application/json"
+    return data, content_type
+
+
 #Check phone number validity and change it to E.164 format
 def phone_check(number):
     number=number.strip()
@@ -68,7 +82,8 @@ def sms_reply():
     phone_number = request.values.get('From', None)
     phone_number = phone_check(phone_number)
     if phone_number==False:
-            return json.dumps({'success':False, 'error':'Invalid phone number format'}), 403, {'ContentType':'application/json'}
+            return custom_error(403, "Invalid phone number format")
+            # return json.dumps({'success':False, 'error':'Invalid phone number format'}), 403, {'ContentType':'application/json'}
     resp = MessagingResponse()
     try:
         body_split = body.split(':')
