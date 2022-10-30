@@ -11,8 +11,10 @@ from flask_jwt_extended import create_access_token
 from flask_jwt_extended import get_jwt_identity
 from flask_jwt_extended import jwt_required
 from werkzeug.exceptions import HTTPException
+from texties.parse import Parser
 import re
 import os
+import flask
 
 
 commands_list = ['weight','note','idea','reminder']
@@ -27,6 +29,7 @@ def return_error(e):
     """Return JSON instead of HTML for HTTP errors."""
     # start with the correct headers and status code from the error
     response = e.get_response()
+    response.headers.add('Access-Control-Allow-Origin', '*')
     # replace the body with JSON
     response.data = json.dumps({
         "code": e.code,
@@ -86,32 +89,38 @@ def sms_reply():
             # return json.dumps({'success':False, 'error':'Invalid phone number format'}), 403, {'ContentType':'application/json'}
     resp = MessagingResponse()
     try:
-        body_split = body.split(':')
-        if(len(body_split)<2):
-            command = "note"
-            command_body = body
+        parser = Parser(body)
+        if len(parser.errors) < 1:
+            textie_to_db("sms", resp, parser.textie, parser.category, phone_number)    
         else:
-            command = body_split[0]
-            command = command.strip()
-            command = command.lower()
-            command_body = body_split[1]
-        if command in commands_list:
-            #save weight
-            try:
-                textie = str(command_body)
-                textie_type = command
-                data = Texties(textie, textie_type, phone_number)
-                db.session.add(data)
-                db.session.commit()
-                resp.message("Your "+ command+" has been recorded "+positive_emojis[random_positive_emoji])
-            except Exception as e:
-                resp.message("Hmm, that was weird. Let me try to fix that. 🧰")
-        else:
-            resp.message("Hmm, textie i don't understand 😕. \n Here are the commands i understand for now (note, weight, reminder, idea)")
+            for error in parser.errors:
+                resp.message(error)
     except Exception as e:
         resp.message("Looks like I am having some issues textie. Let's try later 🥺")
-
     return str(resp)
+
+# Post textie to DB
+def textie_to_db(medium, resp, textie, textie_type, phone_number):
+    try:
+        data = Texties(textie, textie_type, phone_number)
+        db.session.add(data)
+        db.session.commit()
+        if medium == "sms":
+            resp.message("Your "+ textie_type+" has been recorded "+positive_emojis[random_positive_emoji])
+        else:
+            response = flask.jsonify({'some': 'data'})
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            response.data = json.dumps({
+        "success": True,
+        "code": 200,
+        })
+        response.content_type = "application/json"
+        return response
+    except Exception as e:
+        if medium == "sms":
+            resp.message("Hmm, that was weird. Let me try to fix that. 🧰")
+        else:
+            return return_error(e)
 
 # Add textie for web app
 @app.route("/add", methods=['GET', 'POST'])
@@ -125,29 +134,19 @@ def add():
     except Exception as e:
         return return_error(e)
     try:
-        body_split = body.split(':')
-        if(len(body_split)<2):
-            command = "note"
-            command_body = body
+        parser = Parser(body)
+        if len(parser.errors) < 1:
+            res = textie_to_db("web", "", str(parser.textie), str(parser.category), str(phone_number))
+            print(res.data)
+            # if res.data.success == True:
+            #         return json.dumps({'success':True, 'textie':body, }), 403, {'ContentType':'application/json'}
+            # else:
+            #     return return_error(({"success":False}),res)
         else:
-            command = body_split[0]
-            command = command.strip()
-            command = command.lower()
-            command_body = body_split[1]
-        if command in commands_list:
-            try:
-                textie = str(command_body)
-                textie_type = command
-                data = Texties(textie, textie_type, phone_number)
-                db.session.add(data)
-                db.session.commit()
-                return json.dumps({'success':True}), 200, {'ContentType':'application/json'}
-            except Exception as e:
-                return return_error(e)
-        else:
-            return return_error(e)
+            return_error(parser.errors[0])
     except Exception as e:
         return return_error(e)
+    return json.dumps({'success':True, 'textie':body, }), 403, {'ContentType':'application/json'}
 
 
 
@@ -230,7 +229,7 @@ def signup():
                                 body=welcome_message,
                                 from_='+15126050927',
                                 to=phone_number
-                            )
+                            ) 
             samples = 'Here are some sample texts you can send me.\n\n\nnote: Return library card\n\nidea: Create a meowCoin 🐈🪙\n\nweight: 145lbs'
             message = client.messages.create(
                                 body=samples,
@@ -265,7 +264,7 @@ def search():
 @app.route("/delete_texties", methods=['GET','TYPE'])
 def delete_texties():
     delete_key_args=request.args.get('delete_key')
-    delete_key = os.environ['DELETE_KEY']
+    delete_key = os.environ.get('DELETE_KEY','asdnaksjdnakjsdnalksdnadlaksndlakjsfowjhgskdjbsihbg')
     if delete_key_args == delete_key:
         try:
             returned = Texties.query.delete()
@@ -312,7 +311,7 @@ def update():
 @app.route("/delete_authentication", methods=['GET','TYPE'])
 def delete_authentication():
     delete_key_args=request.args.get('delete_key')
-    delete_key = os.environ.get("DELETE_KEY")
+    delete_key = os.environ.get('DELETE_KEY','asdnaksjdnakjsdnalksdnadlaksndlakjsfowjhgskdjbsihbg')
     if delete_key_args == delete_key:
         try:
             returned = AuthenticationTable.query.delete()
